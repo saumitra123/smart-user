@@ -17,6 +17,7 @@ import com.smartitengineering.user.observer.CRUDObservable;
 import com.smartitengineering.user.observer.ObserverNotification;
 import com.smartitengineering.user.service.ExceptionMessage;
 import com.smartitengineering.user.service.OrganizationService;
+import com.smartitengineering.user.service.Services;
 import java.util.Collection;
 import java.util.Date;
 import org.apache.commons.lang.StringUtils;
@@ -62,6 +63,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     final Date date = new Date();
     organization.setLastModifiedDate(date);
     validateOrganization(organization);
+    Organization oldOrganization = readDao.getById(organization.getId());
+    if (oldOrganization == null) {
+      throw new IllegalArgumentException("Trying to update non-existent person!");
+    }
+    organization.setCreationDate(oldOrganization.getCreationDate());
     try {
       writeDao.update(organization);
       observable.notifyObserver(ObserverNotification.UPDATE_ORGANIZATION, organization);
@@ -77,7 +83,9 @@ public class OrganizationServiceImpl implements OrganizationService {
     try {
       observable.notifyObserver(ObserverNotification.DELETE_ORGNIZATION, organization);
       writeDao.delete(organization);
-      logger.info("@@@@@@@@@@@@@Service Impl :: Organization Deleted" + organization.getUniqueShortName());
+      if (logger.isInfoEnabled()) {
+        logger.info("Service Impl :: Organization Deleted " + organization.getUniqueShortName());
+      }
     }
     catch (Exception e) {
       logger.info(e.getMessage(), e);
@@ -107,7 +115,7 @@ public class OrganizationServiceImpl implements OrganizationService {
       q.append(" AND ").append(" name: ").append(ClientUtils.escapeQueryChars(id)).append('*');
     }
     if (organizationFilter.getSortBy() == null) {
-      organizationFilter.setSortBy("id");
+      organizationFilter.setSortBy("organizationUniqueShortName");
     }
     if (organizationFilter.getSortOrder() == null) {
       organizationFilter.setSortOrder(Order.ASC);
@@ -116,9 +124,13 @@ public class OrganizationServiceImpl implements OrganizationService {
       logger.info("count is null");
     }
     else {
-      logger.info("count is " + organizationFilter.getCount());
+      if (logger.isInfoEnabled()) {
+        logger.info("count is " + organizationFilter.getCount());
+      }
     }
-    logger.info(">>>>>>>>>>>QUERY>>>>>>>>>>" + q.toString());
+    if (logger.isInfoEnabled()) {
+      logger.info(">>>>>>>>>>>QUERY>>>>>>>>>>" + q.toString());
+    }
     if (organizationFilter.getCount() != null && organizationFilter.getIndex() != null) {
 
       return freeTextSearchDao.search(QueryParameterFactory.getStringLikePropertyParam("q", q.toString()), QueryParameterFactory.
@@ -139,9 +151,22 @@ public class OrganizationServiceImpl implements OrganizationService {
                                                    int count) {
     OrganizationFilter organizationFilter = new OrganizationFilter();
     organizationFilter.setName(organizationNameLike);
+    Collection<Organization> organizations = search(organizationFilter);
+    Organization organization = Services.getInstance().getOrganizationService().getOrganizationByUniqueShortName(
+        shortName);
+    int index = 0;
+    for (Organization organization1 : organizations){
+      if(organization.getUniqueShortName().equals(organization1.getUniqueShortName())){
+        break;
+      }
+      index ++;
+    }
+    OrganizationFilter organizationFilter1 = new OrganizationFilter();
+    organizationFilter1.setName(organizationNameLike);
     organizationFilter.setOrganizationUniqueShortName(shortName);
-    organizationFilter.setCount(count);
-    return search(organizationFilter);
+    organizationFilter1.setCount(count);
+    organizationFilter1.setIndex(index);
+    return null;
   }
 
   @Override
