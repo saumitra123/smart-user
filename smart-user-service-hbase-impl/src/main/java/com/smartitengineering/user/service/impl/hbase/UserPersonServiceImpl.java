@@ -170,7 +170,7 @@ public class UserPersonServiceImpl implements UserPersonService {
       throw new IllegalArgumentException("Trying to update non-existent user person!");
     }
     userPerson.setCreationDate(oldUserPerson.getCreationDate());
-    cascadeSave(userPerson);
+    cascadeUpdate(userPerson);
     try {
       if (!userPerson.getUser().getId().equals(oldUserPerson.getUser().getId())) {
         final UniqueKey oldIndexKey = getUniqueKeyOfIndexForUser(oldUserPerson);
@@ -208,6 +208,7 @@ public class UserPersonServiceImpl implements UserPersonService {
       String message = ExceptionMessage.STALE_OBJECT_STATE_EXCEPTION.name() + "-" + UniqueConstrainedField.OTHER;
       throw new RuntimeException(message, e);
     }
+
   }
 
   @Override
@@ -425,5 +426,11 @@ public class UserPersonServiceImpl implements UserPersonService {
     if (userPerson.getPerson().getId() != null) {
       personService.delete(userPerson.getPerson());
     }
+  }
+
+  private void cascadeUpdate(UserPerson userPerson) {
+    userService.update(userPerson.getUser());
+    logger.info("Calling person service update");
+    personService.update(userPerson.getPerson());
   }
 }
