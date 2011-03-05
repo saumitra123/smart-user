@@ -339,10 +339,7 @@ public class ComprehensiveClientTest {
     Assert.assertNotNull(organizationResource);
     Assert.assertTrue(organizationResource.getOrganization().getUniqueShortName().equals(sitelOrgResource.
         getOrganization().getUniqueShortName()));
-
-
   }  
-  
 
   @Test
   public void doTestCreateAnotherUser() {
